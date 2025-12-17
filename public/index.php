@@ -7,5 +7,9 @@ define('BASE_PATH', dirname(__DIR__));
 
 require_once BASE_PATH . '/vendor/autoload.php';
 
-$kernel = new Kernel();
+// Bootstrap the application
+$container = require_once BASE_PATH . '/bootstrap/app.php';
+
+// Use the container to create the application kernel
+$kernel = $container->make(Kernel::class);
 $kernel->handle();

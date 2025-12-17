@@ -2,12 +2,40 @@
 
 namespace XMVC\Service;
 
+/**
+ * Service for logging messages to the filesystem.
+ */
 class Log
 {
-    protected static function write($level, $message)
+    /**
+     * The configuration service instance.
+     *
+     * @var Config
+     */
+    protected $config;
+
+    /**
+     * Create a new Log instance.
+     *
+     * @param Config $config The configuration service.
+     */
+    public function __construct(Config $config)
     {
-        $channel = Config::get('log.default');
-        $logFile = Config::get("log.channels.{$channel}.path");
+        $this->config = $config;
+    }
+
+    /**
+     * Write a message to the log.
+     *
+     * @param string $level   The log level (e.g., 'info', 'error').
+     * @param string $message The message to log.
+     *
+     * @return void
+     */
+    public function write($level, $message)
+    {
+        $channel = $this->config->get('log.default');
+        $logFile = $this->config->get("log.channels.{$channel}.path");
 
         $logDir = dirname($logFile);
         if (!is_dir($logDir)) {
@@ -24,13 +52,27 @@ class Log
         file_put_contents($logFile, $message, FILE_APPEND);
     }
 
-    public static function info($message)
+    /**
+     * Log an informational message.
+     *
+     * @param string $message The message to log.
+     *
+     * @return void
+     */
+    public function info($message)
     {
-        static::write('info', $message);
+        $this->write('info', $message);
     }
 
-    public static function error($message)
+    /**
+     * Log an error message.
+     *
+     * @param string $message The message to log.
+     *
+     * @return void
+     */
+    public function error($message)
     {
-        static::write('error', $message);
+        $this->write('error', $message);
     }
 }

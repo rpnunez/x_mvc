@@ -6,39 +6,45 @@ use XMVC\Service\Config;
 use XMVC\Service\Router;
 use App\Http\Request;
 use App\Http\Response;
-use App\Http\Kernel as HttpKernel;
 
 class Kernel
 {
-    public function __construct()
+    protected $container;
+    protected $router;
+    protected $request;
+    protected $config;
+
+    public function __construct(Container $container, Router $router, Request $request, Config $config)
     {
-        $this->loadConfig();
-        $this->loadRoutes();
+        $this->container = $container;
+        $this->router = $router;
+        $this->request = $request;
+        $this->config = $config;
     }
 
     public function handle()
     {
-        $request = new Request();
-        
-        $httpKernel = new HttpKernel();
-        // Accessing protected property via reflection
-        $reflection = new \ReflectionClass($httpKernel);
-        
-        $middlewareProperty = $reflection->getProperty('middleware');
-        $middlewareProperty->setAccessible(true);
-        $globalMiddleware = $middlewareProperty->getValue($httpKernel);
-
-        $routeMiddlewareProperty = $reflection->getProperty('routeMiddleware');
-        $routeMiddlewareProperty->setAccessible(true);
-        $routeMiddlewareMap = $routeMiddlewareProperty->getValue($httpKernel);
-
-        // Match the route first to get route-specific middleware
-        $route = Router::match($request);
+        $route = $this->router->match($this->request);
 
         if (!$route) {
             (new Response("404 Not Found", 404))->send();
             return;
         }
+
+        $middleware = $this->gatherMiddleware($route);
+
+        $response = $this->sendRequestThroughMiddleware($this->request, $middleware, function ($request) use ($route) {
+            $actionResponse = $this->router->handleAction($route['action'], $route['params'], $request);
+            return $this->prepareResponse($actionResponse);
+        });
+
+        $response->send();
+    }
+
+    protected function gatherMiddleware($route)
+    {
+        $globalMiddleware = $this->config->get('middleware.global', []);
+        $routeMiddlewareMap = $this->config->get('middleware.route', []);
 
         $middleware = $globalMiddleware;
         foreach ($route['middleware'] as $key) {
@@ -47,11 +53,7 @@ class Kernel
             }
         }
 
-        $response = $this->sendRequestThroughMiddleware($request, $middleware, function ($request) use ($route) {
-            return Router::handleAction($route['action'], $route['params'], $request);
-        });
-
-        $response->send();
+        return $middleware;
     }
 
     protected function sendRequestThroughMiddleware($request, $middleware, $destination)
@@ -60,7 +62,7 @@ class Kernel
             array_reverse($middleware),
             function ($next, $middlewareClass) {
                 return function ($request) use ($next, $middlewareClass) {
-                    $middlewareInstance = new $middlewareClass();
+                    $middlewareInstance = $this->container->make($middlewareClass);
                     return $middlewareInstance->handle($request, $next);
                 };
             },
@@ -70,16 +72,16 @@ class Kernel
         return $pipeline($request);
     }
 
-    protected function loadConfig()
+    protected function prepareResponse($response)
     {
-        foreach (glob(BASE_PATH . '/config/*.php') as $file) {
-            Config::load(basename($file, '.php'));
+        if ($response instanceof Response) {
+            return $response;
         }
-    }
 
-    protected function loadRoutes()
-    {
-        require_once BASE_PATH . '/routes/web.php';
-        require_once BASE_PATH . '/routes/api.php';
+        if (is_array($response) || is_object($response)) {
+            return Response::json($response);
+        }
+
+        return new Response((string) $response);
     }
 }

@@ -1,0 +1,38 @@
+# IDE & Editor Files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# PHP Files
+/vendor/
+composer.phar
+*.php~
+.php-cs-fixer.cache
+.phpunit.result.cache
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Environment & Config
+.env
+.env.local
+.env.*.local
+*.local.php
+
+# Cache & Logs
+/storage/logs/*
+/storage/cache/*
+!storage/logs/.gitkeep
+!storage/cache/.gitkeep
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

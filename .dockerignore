@@ -1,0 +1,12 @@
+.git
+.gitignore
+.idea
+.vscode
+vendor
+node_modules
+docker-compose.yml
+setup.sh
+README.md
+.env
+.php-cs-fixer.dist.php
+docker/

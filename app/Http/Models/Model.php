@@ -3,10 +3,13 @@
 namespace App\Http\Models;
 
 use XMVC\Service\Db;
+use XMVC\Event\HasEvents;
 use PDO;
 
 abstract class Model
 {
+    use HasEvents;
+
     protected static $table;
 
     public static function getTable()
@@ -46,6 +49,8 @@ abstract class Model
 
     public static function create(array $data)
     {
+        static::fireModelEvent('creating', $data);
+
         $table = static::getTable();
         $columns = implode(', ', array_keys($data));
         $placeholders = ':' . implode(', :', array_keys($data));
@@ -53,6 +58,10 @@ abstract class Model
         $stmt = Db::pdo()->prepare("INSERT INTO {$table} ({$columns}) VALUES ({$placeholders})");
         $stmt->execute($data);
 
-        return static::find(Db::pdo()->lastInsertId());
+        $model = static::find(Db::pdo()->lastInsertId());
+        
+        static::fireModelEvent('created', $model);
+
+        return $model;
     }
 }

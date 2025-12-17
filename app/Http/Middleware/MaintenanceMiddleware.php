@@ -8,9 +8,16 @@ use XMVC\Service\Config;
 
 class MaintenanceMiddleware
 {
+    protected $config;
+
+    public function __construct(Config $config)
+    {
+        $this->config = $config;
+    }
+
     public function handle(Request $request, \Closure $next)
     {
-        if (Config::get('app.maintenance') === true) {
+        if ($this->config->get('app.maintenance') === true) {
             return new Response("503 Service Unavailable", 503);
         }
 

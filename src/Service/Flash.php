@@ -4,26 +4,33 @@ namespace XMVC\Service;
 
 class Flash
 {
-    public static function success($message)
+    protected $session;
+
+    public function __construct(Session $session)
     {
-        Session::set('flash_message', [
+        $this->session = $session;
+    }
+
+    public function success($message)
+    {
+        $this->session->set('flash_message', [
             'type' => 'success',
             'message' => $message,
         ]);
     }
 
-    public static function error($message)
+    public function error($message)
     {
-        Session::set('flash_message', [
+        $this->session->set('flash_message', [
             'type' => 'error',
             'message' => $message,
         ]);
     }
 
-    public static function get()
+    public function get()
     {
-        $message = Session::get('flash_message');
-        Session::forget('flash_message');
+        $message = $this->session->get('flash_message');
+        $this->session->forget('flash_message');
         return $message;
     }
 }

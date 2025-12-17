@@ -3,12 +3,20 @@
 namespace XMVC\Service;
 
 use App\Http\Models\User;
-use XMVC\Service\Session;
 
 class Auth
 {
-    public static function attempt($email, $password)
+    protected $session;
+
+    public function __construct(Session $session)
     {
+        $this->session = $session;
+    }
+
+    public function attempt($email, $password)
+    {
+        // This assumes a static 'where' method on the User model.
+        // A proper repository or ORM would be a better long-term solution.
         $user = User::where('email', $email);
 
         if (!$user) {
@@ -16,31 +24,29 @@ class Auth
         }
 
         if (password_verify($password, $user->password)) {
-            Session::start();
-            Session::set('user_id', $user->id);
+            $this->session->set('user_id', $user->id);
             return true;
         }
 
         return false;
     }
 
-    public static function check()
+    public function check()
     {
-        Session::start();
-        return Session::has('user_id');
+        return $this->session->has('user_id');
     }
 
-    public static function user()
+    public function user()
     {
-        if (static::check()) {
-            return User::find(Session::get('user_id'));
+        if ($this->check()) {
+            // This assumes a static 'find' method on the User model.
+            return User::find($this->session->get('user_id'));
         }
         return null;
     }
 
-    public static function logout()
+    public function logout()
     {
-        Session::start();
-        Session::forget('user_id');
+        $this->session->forget('user_id');
     }
 }

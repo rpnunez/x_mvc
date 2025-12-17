@@ -2,86 +2,89 @@
 
 namespace XMVC\Service;
 
+use Exception;
+use XMVC\Cache\CacheStoreInterface;
+use XMVC\Cache\TaggedCache;
+use XMVC\Cache\TagSet;
+
+/**
+ * Service for managing cache operations.
+ */
 class Cache
 {
     /**
-     * Retrieve an item from the cache.
+     * The cache manager instance.
+     *
+     * @var CacheManager
      */
-    public static function get($key, $default = null)
+    protected $manager;
+
+    /**
+     * The active cache store implementation.
+     *
+     * @var CacheStoreInterface
+     */
+    protected $store;
+
+    /**
+     * Cache constructor.
+     *
+     * @param CacheManager $manager The cache manager service.
+     */
+    public function __construct(CacheManager $manager)
     {
-        $config = static::getConfig();
+        $this->manager = $manager;
+        $this->store = $manager->store();
+    }
 
-        if ($config['driver'] === 'file') {
-            $file = static::getFilePath($key, $config['path']);
-
-            if (file_exists($file)) {
-                $content = file_get_contents($file);
-                $data = unserialize($content);
-
-                if ($data['expires_at'] > time()) {
-                    return $data['value'];
-                }
-
-                // Cache expired
-                unlink($file);
-            }
-        }
-
-        return $default;
+    /**
+     * Retrieve an item from the cache.
+     *
+     * @param string $key     The cache key.
+     * @param mixed  $default The default value to return if the key does not exist or is expired.
+     *
+     * @return mixed The cached value or the default value.
+     */
+    public function get($key, $default = null)
+    {
+        return $this->store->get($key) ?? $default;
     }
 
     /**
      * Store an item in the cache.
+     *
+     * @param string $key     The cache key.
+     * @param mixed  $value   The value to store.
+     * @param int    $seconds The number of seconds to store the item.
+     *
+     * @return bool True on success, false on failure.
      */
-    public static function put($key, $value, $seconds = 3600)
+    public function put($key, $value, $seconds = 3600)
     {
-        $config = static::getConfig();
-
-        if ($config['driver'] === 'file') {
-            $path = $config['path'];
-
-            if (!is_dir($path)) {
-                mkdir($path, 0777, true);
-            }
-
-            $file = static::getFilePath($key, $path);
-
-            $data = [
-                'value' => $value,
-                'expires_at' => time() + $seconds
-            ];
-
-            return file_put_contents($file, serialize($data)) !== false;
-        }
-
-        return false;
+        return $this->store->put($key, $value, $seconds);
     }
 
     /**
      * Remove an item from the cache.
+     *
+     * @param string $key The cache key.
+     *
+     * @return bool True if the file was deleted, false otherwise.
      */
-    public static function forget($key)
+    public function forget($key): bool
     {
-        $config = static::getConfig();
-
-        if ($config['driver'] === 'file') {
-            $file = static::getFilePath($key, $config['path']);
-            if (file_exists($file)) {
-                return unlink($file);
-            }
-        }
-
-        return false;
+        return $this->store->forget($key);
     }
 
-    protected static function getConfig()
+    /**
+     * Begin executing a new tags operation.
+     *
+     * @param  array|mixed  $names
+     * @return TaggedCache
+     */
+    public function tags($names)
     {
-        $default = Config::get('cache.default');
-        return Config::get("cache.stores.{$default}");
-    }
-
-    protected static function getFilePath($key, $path)
-    {
-        return $path . '/' . sha1($key) . '.cache';
+        $names = is_array($names) ? $names : func_get_args();
+        return new TaggedCache($this->store, new TagSet($this->store, $names));
     }
 }

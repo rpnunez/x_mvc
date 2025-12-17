@@ -1,0 +1,38 @@
+#!/usr/bin/env php
+<?php
+
+// Define the absolute path to the project root
+define('BASE_PATH', __DIR__);
+
+require_once BASE_PATH . '/vendor/autoload.php';
+
+// Bootstrap the application container
+$container = require_once BASE_PATH . '/bootstrap/app.php';
+
+// Basic command routing
+$args = $argv;
+$command = $args[1] ?? null;
+
+switch ($command) {
+    case 'cache:clear':
+        echo "Clearing cache...\n";
+        // This is a simple example. A more robust implementation would involve a dedicated Cache service.
+        $cachePath = BASE_PATH . '/storage/cache';
+        $files = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($cachePath, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+
+        foreach ($files as $fileinfo) {
+            $todo = ($fileinfo->isDir() ? 'rmdir' : 'unlink');
+            $todo($fileinfo->getRealPath());
+        }
+        echo "Cache cleared!\n";
+        break;
+
+    default:
+        echo "Unknown command.\n";
+        echo "Available commands:\n";
+        echo "  cache:clear - Clear the application cache.\n";
+        break;
+}

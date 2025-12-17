@@ -4,22 +4,23 @@ namespace XMVC\Service;
 
 class Config
 {
-    protected static $items = [];
+    protected $items = [];
 
-    public static function load($file)
+    public function __construct()
     {
-        $path = BASE_PATH . '/config/' . $file . '.php';
-        if (file_exists($path)) {
-            static::$items[$file] = require $path;
+        $this->loadAll();
+    }
+
+    public function loadAll()
+    {
+        foreach (glob(BASE_PATH . '/config/*.php') as $file) {
+            $this->items[basename($file, '.php')] = require $file;
         }
     }
 
-    public static function get($key, $default = null)
+    public function get($key, $default = null)
     {
-        list($file, $item) = explode('.', $key);
-        if (!isset(static::$items[$file])) {
-            static::load($file);
-        }
-        return static::$items[$file][$item] ?? $default;
+        list($file, $item) = explode('.', $key, 2);
+        return $this->items[$file][$item] ?? $default;
     }
 }

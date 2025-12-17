@@ -4,27 +4,59 @@ namespace XMVC\Service;
 
 use PDO;
 
+/**
+ * Database service for managing PDO connections.
+ */
 class Db
 {
-    protected static $pdo;
+    /**
+     * The active PDO connection.
+     *
+     * @var PDO|null
+     */
+    protected $pdo;
 
-    public static function pdo()
+    /**
+     * The application configuration service.
+     *
+     * @var Config
+     */
+    protected $config;
+
+    /**
+     * Db constructor.
+     *
+     * @param Config $config The application configuration service.
+     */
+    public function __construct(Config $config)
     {
-        if (static::$pdo) {
-            return static::$pdo;
+        $this->config = $config;
+    }
+
+    /**
+     * Get the active PDO connection.
+     *
+     * If a connection does not exist, it will be created.
+     *
+     * @return PDO The active PDO connection.
+     */
+    public function pdo()
+    {
+        if ($this->pdo) {
+            return $this->pdo;
         }
 
-        $config = Config::get('db.connections.' . Config::get('db.default'));
+        $dbConfig = $this->config->get('db.connections.' . $this->config->get('db.default'));
 
-        $dsn = "mysql:host={$config['host']};dbname={$config['database']};charset={$config['charset']}";
+        $dsn = "mysql:host={$dbConfig['host']};dbname={$dbConfig['database']};charset={$dbConfig['charset']}";
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
         ];
 
-        static::$pdo = new PDO($dsn, $config['username'], $config['password'], $options);
+        $this->pdo = new PDO($dsn, $dbConfig['username'], $dbConfig['password'], $options);
 
-        return static::$pdo;
+        return $this->pdo;
     }
 }

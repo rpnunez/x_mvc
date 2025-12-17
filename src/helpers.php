@@ -1,8 +1,10 @@
 <?php
 
+use XMVC\Container;
 use XMVC\Service\Config;
 use App\Http\Views\View;
 use XMVC\Service\Cache;
+use XMVC\Service\Csrf;
 
 if (!function_exists('config')) {
     function config($key = null, $default = null)
@@ -11,7 +13,8 @@ if (!function_exists('config')) {
             return null;
         }
 
-        return Config::get($key, $default);
+        $config = Container::getInstance()->make(Config::class);
+        return $config->get($key, $default);
     }
 }
 
@@ -66,5 +69,21 @@ if (!function_exists('cache')) {
         }
 
         return Cache::get($key, $default);
+    }
+}
+
+if (!function_exists('csrf_field')) {
+    function csrf_field()
+    {
+        $token = Csrf::token();
+        $tokenName = config('security.CsrfTokenName', '_token');
+        return '<input type="hidden" name="' . $tokenName . '" value="' . $token . '">';
+    }
+}
+
+if (!function_exists('csrf_token')) {
+    function csrf_token()
+    {
+        return Csrf::token();
     }
 }
